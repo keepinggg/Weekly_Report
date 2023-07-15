@@ -47,6 +47,7 @@ shell()
 <img width="306" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/0c88b93b-709f-49dc-a22f-0b5c98d00d13">
 
 可以用格式化字符串写漏洞复写全局变量magic
+
 前两个复写的方式相同
 ### exp_craxme1.py
 ```python
@@ -112,15 +113,21 @@ shell()
 ```
 
 具体说一下getshell的方法
+
 程序中有system函数 所以我们是可以通过覆盖某个函数的got表为system来getshell的
+
 但只有一次格式化字符串的机会 在格式化字符串函数之后 可能执行的分支为system和puts函数
 
 <img width="318" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/30fe380e-80cf-4db0-b51b-901a4d9bfdd8">
 
 但调用这两个函数的参数不可控，所以需要复写其他函数的got表 最后发现只有printf函数的参数可控
+
 那么我们可以将puts的got表覆盖为main函数调用read的地址
+
 同时将printf的got表覆盖为system
+
 这样在程序继续执行时就会调用puts函数 然后跳转到read@main 继续执行一次read和printf
+
 在执行到printf时真正调用的是system 我们的输入就是system的参数
 
 ### exp_craxme3.py
