@@ -133,7 +133,6 @@ shell()
 <img width="276" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/b33e9924-0b56-4be8-abff-d22ea2207b24">
 
 计算之后发现这个地址与当前栈顶的地址相差0x(x)2，x表示不确定，所以当时以为要爆破地址... 后来发现这个0x0a是由于我输入的时候用的是sendline
-
 多输入了一个换行 其实这个地址与返回地址应该是个固定偏移 --> 0x14
 
 这样就简单了 那么第二次输入我们只需要覆盖返回地址为泄漏的栈地址leak_stack + 0x14 然后在后面加上长度小于40-4shellcode即可 
